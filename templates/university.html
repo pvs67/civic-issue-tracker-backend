@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>University Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 16px; }
+        label { font-size: 1.1em; }
+        select#universitySelect {
+            font-size: 1.3em;
+            padding: 8px 12px;
+            margin-bottom: 20px;
+            min-width: 400px;
+        }
+        select#universitySelect option {
+            font-size: 1.1em;
+        }
+        table { border-collapse: collapse; width: 100%; font-size: 1em; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f0f0f0; }
+        img { max-width: 100px; }
+        select.status-select { padding: 6px 10px; font-size: 1.1em; min-width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>University Portal</h1>
+
+    <label for="universitySelect">Login as:</label><br>
+    <select id="universitySelect" onchange="loadProblems()">
+        <option value="">-- Select University --</option>
+        <option value="Birla Institute of Technology, Mesra">Birla Institute of Technology, Mesra</option>
+        <option value="National Institute of Technology, Jamshedpur">National Institute of Technology, Jamshedpur</option>
+        <option value="Ranchi University">Ranchi University</option>
+        <option value="Central University of Jharkhand">Central University of Jharkhand</option>
+        <option value="Vinoba Bhave University">Vinoba Bhave University</option>
+        <option value="Jharkhand University of Technology">Jharkhand University of Technology</option>
+        <option value="Sido Kanhu Murmu University">Sido Kanhu Murmu University</option>
+        <option value="Kolhan University">Kolhan University</option>
+    </select>
+
+    <div id="results"></div>
+
+    <script>
+        function loadProblems() {
+            const uni = document.getElementById('universitySelect').value;
+            const resultsDiv = document.getElementById('results');
+            if (!uni) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            resultsDiv.innerHTML = 'Loading...';
+
+            fetch('/university-data/' + encodeURIComponent(uni))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = '<p>No problems assigned yet.</p>';
+                        return;
+                    }
+
+                    let html = '<table><tr><th>Issue</th><th>Category</th><th>Priority</th><th>District</th><th>Photo</th><th>Status</th></tr>';
+                    data.forEach(item => {
+                        html += '<tr>';
+                        html += '<td>' + item.text + '</td>';
+                        html += '<td>' + item.category + '</td>';
+                        html += '<td>' + item.priority + '</td>';
+                        html += '<td>' + item.district + '</td>';
+                        html += '<td>' + (item.image_url ? '<img src="' + item.image_url + '">' : 'No image') + '</td>';
+                        html += '<td>' +
+                            '<select class="status-select" onchange="updateStatus(\'' + item.id + '\', this.value)">' +
+                            '<option value="Pending"' + (item.status === 'Pending' ? ' selected' : '') + '>Pending</option>' +
+                            '<option value="Reviewing"' + (item.status === 'Reviewing' ? ' selected' : '') + '>Reviewing</option>' +
+                            '<option value="Team Formed"' + (item.status === 'Team Formed' ? ' selected' : '') + '>Team Formed</option>' +
+                            '</select></td>';
+                        html += '</tr>';
+                    });
+                    html += '</table>';
+                    resultsDiv.innerHTML = html;
+                })
+                .catch(err => {
+                    resultsDiv.innerHTML = 'Error loading data.';
+                    console.error(err);
+                });
+        }
+
+        function updateStatus(id, newStatus) {
+            fetch('/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: newStatus })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Status updated:', data);
+            })
+            .catch(err => console.error(err));
+        }
+    </script>
+</body>
+</html>

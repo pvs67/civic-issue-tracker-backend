@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report an Issue</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <h2>Report a Civic Issue</h2>
+
+    <textarea id="description" rows="4" cols="50" placeholder="Describe the issue..."></textarea><br><br>
+
+    <label for="district">Select District (Jharkhand):</label><br>
+    <select id="district" onchange="onDistrictChange()">
+        <option value="">-- Select District --</option>
+        <option value="Bokaro" data-lat="23.6693" data-lng="86.1511">Bokaro</option>
+        <option value="Chatra" data-lat="24.2043" data-lng="84.8697">Chatra</option>
+        <option value="Deoghar" data-lat="24.4823" data-lng="86.6947">Deoghar</option>
+        <option value="Dhanbad" data-lat="23.7957" data-lng="86.4304">Dhanbad</option>
+        <option value="Dumka" data-lat="24.2676" data-lng="87.2497">Dumka</option>
+        <option value="East Singhbhum" data-lat="22.8046" data-lng="86.2029">East Singhbhum</option>
+        <option value="Garhwa" data-lat="24.1560" data-lng="83.8082">Garhwa</option>
+        <option value="Giridih" data-lat="24.1913" data-lng="86.3050">Giridih</option>
+        <option value="Godda" data-lat="24.8272" data-lng="87.2140">Godda</option>
+        <option value="Gumla" data-lat="23.0435" data-lng="84.5395">Gumla</option>
+        <option value="Hazaribagh" data-lat="23.9925" data-lng="85.3637">Hazaribagh</option>
+        <option value="Jamtara" data-lat="23.9601" data-lng="86.8054">Jamtara</option>
+        <option value="Khunti" data-lat="23.0725" data-lng="85.2778">Khunti</option>
+        <option value="Koderma" data-lat="24.4676" data-lng="85.5936">Koderma</option>
+        <option value="Latehar" data-lat="23.7448" data-lng="84.4996">Latehar</option>
+        <option value="Lohardaga" data-lat="23.4326" data-lng="84.6788">Lohardaga</option>
+        <option value="Pakur" data-lat="24.6338" data-lng="87.8433">Pakur</option>
+        <option value="Palamu" data-lat="24.0432" data-lng="84.0730">Palamu</option>
+        <option value="Ramgarh" data-lat="23.6300" data-lng="85.5121">Ramgarh</option>
+        <option value="Ranchi" data-lat="23.3441" data-lng="85.3096">Ranchi</option>
+        <option value="Sahebganj" data-lat="25.2497" data-lng="87.6414">Sahebganj</option>
+        <option value="Seraikela Kharsawan" data-lat="22.7014" data-lng="85.9312">Seraikela Kharsawan</option>
+        <option value="Simdega" data-lat="22.6162" data-lng="84.5117">Simdega</option>
+        <option value="West Singhbhum" data-lat="22.5678" data-lng="85.7796">West Singhbhum</option>
+    </select><br><br>
+
+    <div id="mapSection" style="display:none;">
+        <p>Now pin the exact location on the map:</p>
+        <div id="map" style="height: 300px; width: 500px;"></div>
+        <p>Pinned location: <span id="coords">Click the map to select</span></p>
+    </div><br>
+
+    <label for="image">Attach a photo (optional):</label><br>
+    <input type="file" id="image" accept="image/*"><br><br>
+
+    <button onclick="submitReport()">Submit</button>
+    <p id="result"></p>
+
+    <script>
+        let map = null;
+        let marker = null;
+        let selectedLat = null;
+        let selectedLng = null;
+
+        function onDistrictChange() {
+            const select = document.getElementById('district');
+            const selected = select.options[select.selectedIndex];
+            if (!selected.value) {
+                document.getElementById('mapSection').style.display = 'none';
+                return;
+            }
+
+            const lat = parseFloat(selected.getAttribute('data-lat'));
+            const lng = parseFloat(selected.getAttribute('data-lng'));
+
+            document.getElementById('mapSection').style.display = 'block';
+
+            if (!map) {
+                map = L.map('map').setView([lat, lng], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                map.on('click', function(e) {
+                    selectedLat = e.latlng.lat;
+                    selectedLng = e.latlng.lng;
+                    document.getElementById('coords').innerText =
+                        `Lat: ${selectedLat.toFixed(4)}, Lng: ${selectedLng.toFixed(4)}`;
+                    if (marker) map.removeLayer(marker);
+                    marker = L.marker([selectedLat, selectedLng]).addTo(map);
+                });
+            } else {
+                map.setView([lat, lng], 11);
+                if (marker) { map.removeLayer(marker); marker = null; }
+                selectedLat = null;
+                selectedLng = null;
+                document.getElementById('coords').innerText = 'Click the map to select';
+            }
+
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+
+        function submitReport() {
+            const description = document.getElementById('description').value;
+            const district = document.getElementById('district').value;
+            const imageFile = document.getElementById('image').files[0];
+
+            if (!description || !district) {
+                alert("Please fill in the description and select a district.");
+                return;
+            }
+            if (!selectedLat || !selectedLng) {
+                alert("Please pin the exact location on the map.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('description', description);
+            formData.append('district', district);
+            formData.append('lat', selectedLat);
+            formData.append('lng', selectedLng);
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            fetch('/submit-report', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => { throw new Error("Server error: " + text); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                let msg = "Submitted! Category: " + data.category + " | Priority: " + data.priority +
+                    " | Routed to: " + data.university + " (ID: " + data.id + ")";
+                if (data.duplicate_warning) {
+                    msg += " ⚠️ " + data.duplicate_warning;
+                }
+                document.getElementById('result').innerText = msg;
+            })
+            .catch(err => {
+                document.getElementById('result').innerText = "Error: " + err.message;
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>

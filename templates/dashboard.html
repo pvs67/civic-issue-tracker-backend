@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Civic Issue Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .chart-container {
+            display: inline-block;
+            margin: 20px;
+            vertical-align: top;
+            text-align: center;
+        }
+        h2 { margin-bottom: 5px; }
+        .stat { font-size: 1.2em; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Civic Issue Dashboard</h1>
+    <div class="stat">Total Submissions: <span id="total">Loading...</span></div>
+
+    <div class="chart-container">
+        <h2>By Domain</h2>
+        <canvas id="categoryChart" width="450" height="450"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>By District</h2>
+        <canvas id="districtChart" width="450" height="450"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>By Status</h2>
+        <canvas id="statusChart" width="450" height="450"></canvas>
+    </div>
+
+    <script>
+        Chart.defaults.devicePixelRatio = 3;
+
+        fetch('/dashboard-data')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('total').innerText = data.total;
+
+                new Chart(document.getElementById('categoryChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(data.by_category),
+                        datasets: [{
+                            data: Object.values(data.by_category),
+                            backgroundColor: ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#1abc9c','#e67e22','#34495e','#95a5a6','#d35400']
+                        }]
+                    },
+                    options: { responsive: false }
+                });
+
+                new Chart(document.getElementById('districtChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data.by_district),
+                        datasets: [{
+                            label: 'Reports',
+                            data: Object.values(data.by_district),
+                            backgroundColor: '#3498db'
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+
+                new Chart(document.getElementById('statusChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(data.by_status),
+                        datasets: [{
+                            data: Object.values(data.by_status),
+                            backgroundColor: ['#f39c12','#2ecc71','#e74c3c','#3498db']
+                        }]
+                    },
+                    options: { responsive: false }
+                });
+            })
+            .catch(err => {
+                document.getElementById('total').innerText = "Error loading data";
+                console.error(err);
+            });
+    </script>
+</body>
+</html>
