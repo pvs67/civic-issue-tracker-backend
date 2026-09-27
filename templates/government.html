@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Government Dashboard · NexGenX | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2>Government Monitoring Dashboard</h2>
+          <p class="muted" style="margin-top:8px">Monitor registered civic challenges, university matching, industry support and implementation progress.</p>
+        </div>
+      </div>
+      <div class="stats" id="kpis"></div>
+      <div class="layout" style="margin-top:20px">
+        <div class="card"><canvas id="lineChart" height="180"></canvas></div>
+        <div class="card"><canvas id="pieChart" height="180"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <h3>Geographic Distribution of Challenges</h3>
+        <div id="map" class="map"></div>
+      </div>
+      <div class="card table-wrap" style="margin-top:20px">
+        <h3>Recently Registered Challenges</h3>
+        <table>
+          <thead><tr><th>Ticket ID</th><th>Subject</th><th>Priority</th><th>Status</th><th>University</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/store.js"></script>
+  <script src="/static/layout.js"></script>
+  <script>
+    Store.list().then((issues) => {
+      document.getElementById("kpis").innerHTML = `
+        <div class="stat"><b>${Math.max(2480, issues.length).toLocaleString("en-IN")}</b><span>Challenges Registered</span></div>
+        <div class="stat"><b>1,120</b><span>Universities Engaged</span></div>
+        <div class="stat"><b>310</b><span>Industry Partners</span></div>
+        <div class="stat"><b>185</b><span>Under Implementation</span></div>`;
+
+      document.getElementById("rows").innerHTML = issues.map((i) => `
+        <tr>
+          <td>${i.id}</td>
+          <td><a href="track.html?id=${i.id}">${i.title}</a></td>
+          <td><span class="badge">${i.priority}</span></td>
+          <td>${i.status}</td>
+          <td>${i.university || "—"}</td>
+        </tr>`).join("");
+
+      const cats = {};
+      issues.forEach((i) => { if (i.category) cats[i.category] = (cats[i.category] || 0) + 1; });
+      new Chart(document.getElementById("pieChart"), {
+        type: "doughnut",
+        data: {
+          labels: Object.keys(cats),
+          datasets: [{ data: Object.values(cats), backgroundColor: ["#10306b", "#ff9933", "#138808", "#5a3a9e", "#1c4d92", "#97124f", "#b06a00", "#41505f", "#14509b", "#3c6b0d"] }]
+        },
+        options: { plugins: { title: { display: true, text: "Challenges by Domain" }, legend: { position: "bottom" } } }
+      });
+      new Chart(document.getElementById("lineChart"), {
+        type: "line",
+        data: {
+          labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+          datasets: [{
+            label: "Monthly challenge submissions (illustrative)",
+            data: [420, 510, 640, 780, 910, 1080, 1290, 1480, 1720, 1980, 2210, 2480],
+            borderColor: "#10306b",
+            backgroundColor: "rgba(16,48,107,.12)",
+            fill: true,
+            tension: .35
+          }]
+        },
+        options: { plugins: { title: { display: true, text: "Growth in Challenge Submissions" } } }
+      });
+
+      const map = L.map("map").setView([22.5, 79], 4.5);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
+      issues.forEach((i) => {
+        if (!i.lat) return;
+        L.circleMarker([i.lat, i.lng], { radius: 8, color: "#10306b", fillOpacity: 0.8 })
+          .addTo(map)
+          .bindPopup(`<b>${i.title}</b><br>${i.status}`);
+      });
+    });
+  </script>
+</body>
+</html>

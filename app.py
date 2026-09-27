@@ -14,7 +14,6 @@ import cloudinary.uploader
 
 load_dotenv()
 
-# Firebase setup
 if os.path.exists("serviceAccountKey.json"):
     cred = credentials.Certificate("serviceAccountKey.json")
 else:
@@ -23,11 +22,9 @@ else:
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Gemini setup
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-GEMINI_MODEL = "gemini-flash-lite-latest"  # 500 RPD free tier vs 20 RPD on gemini-flash-latest
+GEMINI_MODEL = "gemini-flash-lite-latest"
 
-# Cloudinary setup
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -35,10 +32,10 @@ cloudinary.config(
 )
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 
 def call_gemini_with_retry(prompt, max_retries=3):
-    """Calls Gemini, retrying on transient errors. Fails fast on quota exhaustion."""
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
@@ -93,19 +90,71 @@ def check_duplicate(category, lat, lng, radius_meters=500):
     return None
 
 
+def doc_to_issue(doc_id, d):
+    """Converts a Firestore submission document into the issue shape the frontend expects."""
+    created_at = d.get('created_at')
+    created_at_str = created_at.isoformat() if created_at else datetime.now(timezone.utc).isoformat()
+    title = d.get('title') or (d.get('text', '')[:60] + ('...' if len(d.get('text', '')) > 60 else ''))
+    return {
+        "id": doc_id,
+        "title": title,
+        "description": d.get('text'),
+        "category": d.get('category'),
+        "priority": d.get('priority'),
+        "status": d.get('status'),
+        "location": d.get('district'),
+        "lat": d.get('lat'),
+        "lng": d.get('lng'),
+        "reporter": d.get('reporter', ''),
+        "summary": d.get('summary'),
+        "university": d.get('university_name', ''),
+        "industry": "",
+        "createdAt": created_at_str,
+        "updates": d.get('updates', []),
+        "photo": d.get('image_url', '')
+    }
+
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
+@app.route('/report.html')
+def report_page():
+    return render_template('report.html')
+
+@app.route('/university.html')
+def university_page():
+    return render_template('university.html')
+
+@app.route('/government.html')
+def government_page():
+    return render_template('government.html')
+
+@app.route('/challenges.html')
+def challenges_page():
+    return render_template('challenges.html')
+
+@app.route('/track.html')
+def track_page():
+    return render_template('track.html')
+
+@app.route('/industry.html')
+def industry_page():
+    return render_template('industry.html')
 
 @app.route('/dashboard')
 def dashboard_page():
     return render_template('dashboard.html')
 
 
+
+
 @app.route('/submit-report', methods=['POST'])
 def submit_report():
     try:
+        title = request.form.get('title')
+        reporter = request.form.get('reporter', '')
         description = request.form.get('description')
         district = request.form.get('district')
         lat = request.form.get('lat')
@@ -114,14 +163,19 @@ def submit_report():
         lng = float(lng) if lng else None
 
         image_url = None
-        if 'image' in request.files:
-            image_file = request.files['image']
-            if image_file.filename != '':
-                upload_result = cloudinary.uploader.upload(image_file)
+        if 'image' in request.files and request.files['image'].filename != '':
+            upload_result = cloudinary.uploader.upload(request.files['image'])
+            image_url = upload_result.get('secure_url')
+        elif request.form.get('photo_base64'):
+            photo_data = request.form.get('photo_base64')
+            if photo_data and photo_data.startswith('data:image'):
+                upload_result = cloudinary.uploader.upload(photo_data)
                 image_url = upload_result.get('secure_url')
 
         doc_ref = db.collection('submissions').document()
         doc_ref.set({
+            'title': title,
+            'reporter': reporter,
             'text': description,
             'district': district,
             'lat': lat,
@@ -131,7 +185,11 @@ def submit_report():
             'category': None,
             'summary': None,
             'priority': None,
-            'created_at': datetime.now(timezone.utc)
+            'created_at': datetime.now(timezone.utc),
+            'updates': [{
+                'at': datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+                'text': 'Citizen report received. Awaiting AI analysis.'
+            }]
         })
 
         prompt = f"""
@@ -161,7 +219,11 @@ def submit_report():
             'university_id': matched_university['id'] if matched_university else None,
             'university_name': matched_university['name'] if matched_university else None,
             'possible_duplicate_of': duplicate['id'] if duplicate else None,
-            'status': 'Possible Duplicate' if duplicate else 'Pending'
+            'status': 'Possible Duplicate' if duplicate else 'Pending',
+            'updates': firestore.ArrayUnion([{
+                'at': datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+                'text': f"AI analysis complete. Categorized as {result['category']}, routed to {matched_university['name'] if matched_university else 'no match found'}."
+            }])
         })
 
         return jsonify({
@@ -187,60 +249,93 @@ def submit_report():
             "message": "Something went wrong processing your report. Please try again."
         }), 500
 
-@app.route('/university')
-def university_page():
-    return render_template('university.html')
-
-
-@app.route('/university-data/<university_name>')
-def university_data(university_name):
+@app.route('/api/issues/<issue_id>', methods=['DELETE'])
+def api_delete_issue(issue_id):
     try:
+        db.collection('submissions').document(issue_id).delete()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        print("ERROR in api_delete_issue:", str(e))
+        return jsonify({"status": "error", "message": "Could not delete"}), 500
+
+@app.route('/index.html')
+def index_page():
+    return render_template('index.html')
+
+
+@app.route('/api/issues')
+def api_list_issues():
+    try:
+        q = request.args.get('q', '').lower()
+        category = request.args.get('category', '')
+        status = request.args.get('status', '')
+
         submissions = db.collection('submissions') \
-            .where('university_name', '==', university_name) \
+            .order_by('created_at', direction=firestore.Query.DESCENDING) \
             .stream()
 
         results = []
         for doc in submissions:
-            d = doc.to_dict()
-            results.append({
-                "id": doc.id,
-                "text": d.get('text'),
-                "category": d.get('category'),
-                "priority": d.get('priority'),
-                "district": d.get('district'),
-                "status": d.get('status'),
-                "image_url": d.get('image_url')
-            })
+            issue = doc_to_issue(doc.id, doc.to_dict())
+            if q and q not in (str(issue['title']) + str(issue['description']) + str(issue['id'])).lower():
+                continue
+            if category and issue['category'] != category:
+                continue
+            if status and issue['status'] != status:
+                continue
+            results.append(issue)
+
         return jsonify(results)
     except Exception as e:
-        print("ERROR in university_data:", str(e))
-        return jsonify({"status": "error", "message": "Could not load data"}), 500
+        print("ERROR in api_list_issues:", str(e))
+        return jsonify([])
 
 
-@app.route('/update-status', methods=['POST'])
-def update_status():
+@app.route('/api/issues/<issue_id>')
+def api_get_issue(issue_id):
     try:
-        data = request.json
-        doc_id = data.get('id')
-        new_status = data.get('status')
-
-        db.collection('submissions').document(doc_id).update({'status': new_status})
-        return jsonify({"status": "success"})
+        doc = db.collection('submissions').document(issue_id).get()
+        if not doc.exists:
+            return jsonify({"error": "not found"}), 404
+        return jsonify(doc_to_issue(doc.id, doc.to_dict()))
     except Exception as e:
-        print("ERROR in update_status:", str(e))
-        return jsonify({"status": "error", "message": "Could not update status"}), 500
+        print("ERROR in api_get_issue:", str(e))
+        return jsonify({"error": "not found"}), 404
+
+
+@app.route('/api/issues/<issue_id>/status', methods=['POST'])
+def api_update_status(issue_id):
+    try:
+        data = request.json or {}
+        new_status = data.get('status')
+        note = data.get('note', '')
+
+        update_data = {}
+        if new_status:
+            update_data['status'] = new_status
+        if note:
+            update_data['updates'] = firestore.ArrayUnion([{
+                'at': datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+                'text': note
+            }])
+
+        db.collection('submissions').document(issue_id).update(update_data)
+
+        doc = db.collection('submissions').document(issue_id).get()
+        return jsonify(doc_to_issue(doc.id, doc.to_dict()))
+    except Exception as e:
+        print("ERROR in api_update_status:", str(e))
+        return jsonify({"status": "error", "message": "Could not update"}), 500
 
 
 @app.route('/dashboard-data')
 def dashboard_data():
     try:
         submissions = db.collection('submissions').stream()
-
         category_counts = Counter()
         district_counts = Counter()
         status_counts = Counter()
         total = 0
-
         for doc in submissions:
             d = doc.to_dict()
             total += 1
@@ -250,7 +345,6 @@ def dashboard_data():
                 district_counts[d['district']] += 1
             if d.get('status'):
                 status_counts[d['status']] += 1
-
         return jsonify({
             "total": total,
             "by_category": dict(category_counts),

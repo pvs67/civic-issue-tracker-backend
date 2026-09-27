@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Industry &amp; CSR Portal · NexGenX | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2>Industry &amp; CSR Partnership Module</h2>
+          <p class="muted" style="margin-top:8px">Extend mentoring, funding and implementation capacity to university prototypes.</p>
+        </div>
+      </div>
+      <div class="cards" style="margin-bottom:24px">
+        <article class="card"><h3>Tata Trusts</h3><p class="muted">Water, health and rural livelihoods CSR programmes.</p></article>
+        <article class="card"><h3>Mahindra Rise</h3><p class="muted">Clean energy, mobility and climate-smart infrastructure.</p></article>
+        <article class="card"><h3>Infosys Foundation</h3><p class="muted">Education, digital public goods and skilling.</p></article>
+      </div>
+      <div id="grid" class="issue-list"></div>
+    </div>
+  </section>
+  <script src="js/store.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    async function load() {
+      const issues = await Store.list();
+      document.getElementById("grid").innerHTML = issues.map((i) => `
+        <article class="card issue-item">
+          <div>
+            <h3>${i.title}</h3>
+            <p class="muted">${i.university || "University match awaited"} · Status: ${i.status}</p>
+            <p>${i.summary}</p>
+          </div>
+          <button class="btn btn-accent btn-sm" data-id="${i.id}">Pledge Support</button>
+        </article>`).join("");
+      document.querySelectorAll("button[data-id]").forEach((btn) => {
+        btn.onclick = async () => {
+          await Store.update(btn.dataset.id, {
+            status: "Industry Supported",
+            industry: "CSR Partner",
+            note: "Industry partner pledged mentoring and implementation support."
+          });
+          btn.textContent = "Support Pledged";
+          btn.disabled = true;
+        };
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

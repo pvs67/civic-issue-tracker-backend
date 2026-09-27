@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report an Issue · NexGenX | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <section class="section">
+    <div class="container layout">
+      <div class="card">
+        <h2>Registration of Societal Challenge</h2>
+        <p class="muted">Any citizen may submit a challenge. Fields marked <span style="color:#b12704">*</span> are mandatory. An acknowledgement ticket ID will be generated on submission.</p>
+        <form id="reportForm" class="form-grid">
+          <div>
+            <label for="f-reporter">Name of Applicant <span class="req">*</span></label>
+            <input id="f-reporter" name="reporter" placeholder="Full name as per official record" required />
+          </div>
+          <div>
+            <label for="f-title">Subject of Challenge <span class="req">*</span></label>
+            <input id="f-title" name="title" placeholder="e.g. Open drain overflowing near government school" required />
+          </div>
+          <div>
+            <label for="f-desc">Description of Challenge <span class="req">*</span></label>
+            <textarea id="f-desc" name="description" placeholder="State the problem, affected population and the relief sought." required></textarea>
+          </div>
+          <div>
+            <label for="f-district">District (Jharkhand) <span class="req">*</span></label>
+            <select id="f-district" name="district" required>
+              <option value="">-- Select District --</option>
+              <option value="Bokaro" data-lat="23.6693" data-lng="86.1511">Bokaro</option>
+              <option value="Chatra" data-lat="24.2043" data-lng="84.8697">Chatra</option>
+              <option value="Deoghar" data-lat="24.4823" data-lng="86.6947">Deoghar</option>
+              <option value="Dhanbad" data-lat="23.7957" data-lng="86.4304">Dhanbad</option>
+              <option value="Dumka" data-lat="24.2676" data-lng="87.2497">Dumka</option>
+              <option value="East Singhbhum" data-lat="22.8046" data-lng="86.2029">East Singhbhum</option>
+              <option value="Garhwa" data-lat="24.1560" data-lng="83.8082">Garhwa</option>
+              <option value="Giridih" data-lat="24.1913" data-lng="86.3050">Giridih</option>
+              <option value="Godda" data-lat="24.8272" data-lng="87.2140">Godda</option>
+              <option value="Gumla" data-lat="23.0435" data-lng="84.5395">Gumla</option>
+              <option value="Hazaribagh" data-lat="23.9925" data-lng="85.3637">Hazaribagh</option>
+              <option value="Jamtara" data-lat="23.9601" data-lng="86.8054">Jamtara</option>
+              <option value="Khunti" data-lat="23.0725" data-lng="85.2778">Khunti</option>
+              <option value="Koderma" data-lat="24.4676" data-lng="85.5936">Koderma</option>
+              <option value="Latehar" data-lat="23.7448" data-lng="84.4996">Latehar</option>
+              <option value="Lohardaga" data-lat="23.4326" data-lng="84.6788">Lohardaga</option>
+              <option value="Pakur" data-lat="24.6338" data-lng="87.8433">Pakur</option>
+              <option value="Palamu" data-lat="24.0432" data-lng="84.0730">Palamu</option>
+              <option value="Ramgarh" data-lat="23.6300" data-lng="85.5121">Ramgarh</option>
+              <option value="Ranchi" data-lat="23.3441" data-lng="85.3096">Ranchi</option>
+              <option value="Sahebganj" data-lat="25.2497" data-lng="87.6414">Sahebganj</option>
+              <option value="Seraikela Kharsawan" data-lat="22.7014" data-lng="85.9312">Seraikela Kharsawan</option>
+              <option value="Simdega" data-lat="22.6162" data-lng="84.5117">Simdega</option>
+              <option value="West Singhbhum" data-lat="22.5678" data-lng="85.7796">West Singhbhum</option>
+            </select>
+          </div>
+          <div>
+            <label for="photo">Supporting Photograph (optional)</label>
+            <input type="file" id="photo" accept="image/*" />
+            <p class="muted" id="photoStatus" style="margin-top:4px;font-size:12px"></p>
+          </div>
+          <button class="btn btn-accent" type="submit">Submit Report</button>
+        </form>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h3>Mark Location on Map</h3>
+          <p class="muted">Select a district above, then click on the map to pin the exact location.</p>
+          <div id="map" class="map"></div>
+          <p class="muted" style="margin-top:8px" id="coordsText">No location pinned yet.</p>
+        </div>
+        <div class="card ai-box" id="aiPanel">
+          <h3>Automated Analysis</h3>
+          <p class="muted">On submission the system will assign a category and priority, prepare a summary, check for duplicate reports and recommend a matching university.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/layout.js"></script>
+  <script>
+    let lat = null, lng = null, photo = "";
+    let map = null;
+    let marker = null;
+
+    function initMap(centerLat, centerLng) {
+      if (!map) {
+        map = L.map('map').setView([centerLat, centerLng], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: "&copy; OpenStreetMap" }).addTo(map);
+        map.on('click', function(e) {
+          lat = e.latlng.lat;
+          lng = e.latlng.lng;
+          document.getElementById('coordsText').innerText = `Pinned: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
+          if (marker) map.removeLayer(marker);
+          marker = L.marker([lat, lng]).addTo(map);
+        });
+      } else {
+        map.setView([centerLat, centerLng], 10);
+        if (marker) { map.removeLayer(marker); marker = null; }
+        lat = null; lng = null;
+        document.getElementById('coordsText').innerText = 'No location pinned yet.';
+      }
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    document.getElementById('f-district').addEventListener('change', function() {
+      const selected = this.options[this.selectedIndex];
+      if (!selected.value) return;
+      const centerLat = parseFloat(selected.getAttribute('data-lat'));
+      const centerLng = parseFloat(selected.getAttribute('data-lng'));
+      initMap(centerLat, centerLng);
+    });
+
+    initMap(23.6, 85.3);
+    map.setZoom(7);
+
+    // Compress image via canvas before converting to base64
+    function compressImage(file, maxWidth, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById("photo").onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) { photo = ""; return; }
+
+      const statusEl = document.getElementById('photoStatus');
+      statusEl.innerText = "Compressing image...";
+
+      try {
+        const originalSizeKB = (file.size / 1024).toFixed(0);
+        photo = await compressImage(file, 1200, 0.7);
+        const compressedSizeKB = ((photo.length * 0.75) / 1024).toFixed(0);
+        statusEl.innerText = `Original: ${originalSizeKB}KB → Compressed: ~${compressedSizeKB}KB`;
+      } catch (err) {
+        console.error("Compression failed:", err);
+        statusEl.innerText = "Could not process image.";
+        photo = "";
+      }
+    };
+
+    document.getElementById("reportForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+
+      if (!lat || !lng) {
+        alert("Please select a district and click the map to pin the exact location.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("title", fd.get("title"));
+      formData.append("reporter", fd.get("reporter"));
+      formData.append("description", fd.get("description"));
+      formData.append("district", fd.get("district"));
+      formData.append("lat", lat);
+      formData.append("lng", lng);
+      formData.append("photo_base64", photo);
+
+      document.getElementById("aiPanel").innerHTML = "<p>Analyzing your report...</p>";
+
+      try {
+        const res = await fetch("/submit-report", { method: "POST", body: formData });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        document.getElementById("aiPanel").innerHTML = `
+          <h3>Acknowledgement &amp; Analysis</h3>
+          <p class="notice">Your report has been registered successfully. Please retain this ticket ID for future reference.</p>
+          <p><b>Ticket ID:</b> ${data.id}</p>
+          <p>
+            <span class="badge">${data.category}</span>
+            <span class="badge">${data.priority} priority</span>
+          </p>
+          ${data.duplicate_warning ? `<p class="notice" style="margin-top:12px">${data.duplicate_warning}</p>` : ""}
+          <p style="margin-top:14px"><b>Routed To</b></p>
+          <p>${data.university}</p>
+          <a class="btn btn-primary" href="track.html?id=${data.id}">Track This Report</a>`;
+      } catch (err) {
+        document.getElementById("aiPanel").innerHTML = `<p class="notice">Error submitting report: ${err.message}</p>`;
+        console.error(err);
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Track Application Status · NexGenX | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <section class="section">
+    <div class="container layout">
+      <div class="card">
+        <h2>Track Application Status</h2>
+        <p class="muted">Enter the ticket ID issued at the time of registration to view the current status of your report.</p>
+        <form id="find" class="form-grid">
+          <div>
+            <label for="ticket">Ticket ID <span class="req">*</span></label>
+            <input id="ticket" placeholder="e.g. abc123XYZ" />
+          </div>
+          <button class="btn btn-primary" type="submit">View Status</button>
+        </form>
+        <div id="result" style="margin-top:20px"></div>
+      </div>
+      <div class="card">
+        <h3>Stages of Redressal</h3>
+        <p class="muted">Each registered challenge moves through the following stages.</p>
+        <div class="timeline" style="margin-top:18px">
+          <p><small>Stage 1</small><br>Report received and acknowledged</p>
+          <p><small>Stage 2</small><br>Automated categorisation and prioritisation</p>
+          <p><small>Stage 3</small><br>University team matched</p>
+          <p><small>Stage 4</small><br>Industry / CSR support extended</p>
+          <p><small>Stage 5</small><br>Prototype, deployment and public update</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script src="/static/store.js"></script>
+  <script src="/static/layout.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    if (params.get("id")) ticket.value = params.get("id");
+
+    async function show(id) {
+      const i = await Store.get(id);
+      if (!i) {
+        result.innerHTML = "<p class='notice'>No record found against the ticket ID entered. Please verify and try again.</p>";
+        return;
+      }
+      result.innerHTML = `
+        <span class="badge">${i.category}</span>
+        <span class="badge">${i.priority}</span>
+        <span class="badge">${i.status}</span>
+        <h3>${i.title}</h3>
+        <p>${i.description}</p>
+        <p class="muted">${i.location} · Applicant: ${i.reporter}</p>
+        <p><b>Summary:</b> ${i.summary || ""}</p>
+        <p><b>University:</b> ${i.university || "Awaited"}</p>
+        ${i.photo ? `<img src="${i.photo}" alt="Supporting photograph" style="border:1px solid #d3dbe5;margin:12px 0;max-height:240px;object-fit:cover">` : ""}
+        <h3>Action Taken</h3>
+        <div class="timeline">${(i.updates || []).map((u) => `<p><small>${u.at}</small><br>${u.text}</p>`).join("") || "<p class='muted'>No action recorded so far.</p>"}</div>`;
+    }
+    document.getElementById("find").onsubmit = (e) => {
+      e.preventDefault();
+      show(ticket.value.trim());
+    };
+    if (ticket.value) show(ticket.value);
+  </script>
+</body>
+</html>

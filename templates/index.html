@@ -1,143 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Report an Issue</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexGenX · Societal Innovation Collaboration Portal | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-    <h2>Report a Civic Issue</h2>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <div class="kicker">Smart India Hackathon 2026 · Team NexGenX · Problem Statement SIH26043</div>
+        <h1>A national platform to crowdsource societal challenges</h1>
+        <p class="lead">Citizens report real civic problems. The portal categorises each report, routes it to universities with matching expertise, and connects industry and government for implementation.</p>
+        <div class="flow">
+          <b>Real Problems</b><b>Smart Matching</b><b>Collaborative Solutions</b><b>A Better Tomorrow</b>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-accent" href="report.html">Report an Issue</a>
+          <a class="btn btn-ghost" href="track.html">Track Status</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <h3>Stakeholders on the platform</h3>
+        <p class="muted" style="margin-top:0;font-size:13px">Four-way collaboration model</p>
+        <div class="cycle">
+          <div class="c">Citizens<br><small>Report challenges</small></div>
+          <div class="u">Universities<br><small>Develop solutions</small></div>
+          <div class="i">Industry<br><small>Fund &amp; mentor</small></div>
+          <div class="g">Government<br><small>Monitor &amp; implement</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <textarea id="description" rows="4" cols="50" placeholder="Describe the issue..."></textarea><br><br>
+  <section class="section" style="padding-bottom:0">
+    <div class="container">
+      <div class="announce">
+        <strong>Announcements:</strong>
+        <ul>
+          <li>Citizen reporting is open across all districts. Reports are acknowledged with a ticket ID for tracking.</li>
+          <li>1,120 universities and 310 industry partners are onboarded for collaborative problem solving.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-    <label for="district">Select District (Jharkhand):</label><br>
-    <select id="district" onchange="onDistrictChange()">
-        <option value="">-- Select District --</option>
-        <option value="Bokaro" data-lat="23.6693" data-lng="86.1511">Bokaro</option>
-        <option value="Chatra" data-lat="24.2043" data-lng="84.8697">Chatra</option>
-        <option value="Deoghar" data-lat="24.4823" data-lng="86.6947">Deoghar</option>
-        <option value="Dhanbad" data-lat="23.7957" data-lng="86.4304">Dhanbad</option>
-        <option value="Dumka" data-lat="24.2676" data-lng="87.2497">Dumka</option>
-        <option value="East Singhbhum" data-lat="22.8046" data-lng="86.2029">East Singhbhum</option>
-        <option value="Garhwa" data-lat="24.1560" data-lng="83.8082">Garhwa</option>
-        <option value="Giridih" data-lat="24.1913" data-lng="86.3050">Giridih</option>
-        <option value="Godda" data-lat="24.8272" data-lng="87.2140">Godda</option>
-        <option value="Gumla" data-lat="23.0435" data-lng="84.5395">Gumla</option>
-        <option value="Hazaribagh" data-lat="23.9925" data-lng="85.3637">Hazaribagh</option>
-        <option value="Jamtara" data-lat="23.9601" data-lng="86.8054">Jamtara</option>
-        <option value="Khunti" data-lat="23.0725" data-lng="85.2778">Khunti</option>
-        <option value="Koderma" data-lat="24.4676" data-lng="85.5936">Koderma</option>
-        <option value="Latehar" data-lat="23.7448" data-lng="84.4996">Latehar</option>
-        <option value="Lohardaga" data-lat="23.4326" data-lng="84.6788">Lohardaga</option>
-        <option value="Pakur" data-lat="24.6338" data-lng="87.8433">Pakur</option>
-        <option value="Palamu" data-lat="24.0432" data-lng="84.0730">Palamu</option>
-        <option value="Ramgarh" data-lat="23.6300" data-lng="85.5121">Ramgarh</option>
-        <option value="Ranchi" data-lat="23.3441" data-lng="85.3096">Ranchi</option>
-        <option value="Sahebganj" data-lat="25.2497" data-lng="87.6414">Sahebganj</option>
-        <option value="Seraikela Kharsawan" data-lat="22.7014" data-lng="85.9312">Seraikela Kharsawan</option>
-        <option value="Simdega" data-lat="22.6162" data-lng="84.5117">Simdega</option>
-        <option value="West Singhbhum" data-lat="22.5678" data-lng="85.7796">West Singhbhum</option>
-    </select><br><br>
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><h2>Portal at a Glance</h2></div>
+      <div class="stats" id="stats"></div>
+    </div>
+  </section>
 
-    <div id="mapSection" style="display:none;">
-        <p>Now pin the exact location on the map:</p>
-        <div id="map" style="height: 300px; width: 500px;"></div>
-        <p>Pinned location: <span id="coords">Click the map to select</span></p>
-    </div><br>
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2>How It Works</h2>
+          <p class="muted" style="margin-top:8px">Report, analyse, match, implement and monitor — the MVP flow from the technical approach.</p>
+        </div>
+      </div>
+      <div class="cards">
+        <article class="card"><div class="icon">1</div><h3>Citizen Report</h3><p class="muted">Submit a challenge with description, photograph and map location. Any citizen can raise an issue in minutes.</p></article>
+        <article class="card"><div class="icon">2</div><h3>AI-Enabled Triage</h3><p class="muted">The engine assigns category and priority, extracts keywords, prepares a summary and flags possible duplicate reports.</p></article>
+        <article class="card"><div class="icon">3</div><h3>Collaborative Solution</h3><p class="muted">Matched university teams build prototypes with industry mentoring, funding and implementation support.</p></article>
+      </div>
+    </div>
+  </section>
 
-    <label for="image">Attach a photo (optional):</label><br>
-    <input type="file" id="image" accept="image/*"><br><br>
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="section-head"><h2>Services &amp; Modules</h2></div>
+      <div class="cards">
+        <a class="card" href="report.html"><div class="icon">◉</div><h3>Citizen Portal</h3><p class="muted">Report and track civic problems with multimedia and location details.</p></a>
+        <a class="card" href="university.html"><div class="icon">◈</div><h3>University Portal</h3><p class="muted">Identify suitable students and faculty, form teams and submit solutions.</p></a>
+        <a class="card" href="industry.html"><div class="icon">◆</div><h3>Industry &amp; CSR Portal</h3><p class="muted">Offer mentoring, funding, prototyping and implementation capacity.</p></a>
+        <a class="card" href="government.html"><div class="icon">▣</div><h3>Government Dashboard</h3><p class="muted">Monitor issues, project status, domain distribution and civic impact.</p></a>
+        <a class="card" href="challenges.html"><div class="icon">▤</div><h3>Maps &amp; Analytics</h3><p class="muted">Geo-tagged challenge register with domain, location and status insights.</p></a>
+        <article class="card"><div class="icon">▧</div><h3>AI Engine</h3><p class="muted">Categorise, prioritise, detect duplicates and recommend university expertise.</p></article>
+      </div>
+    </div>
+  </section>
 
-    <button onclick="submitReport()">Submit</button>
-    <p id="result"></p>
-
-    <script>
-        let map = null;
-        let marker = null;
-        let selectedLat = null;
-        let selectedLng = null;
-
-        function onDistrictChange() {
-            const select = document.getElementById('district');
-            const selected = select.options[select.selectedIndex];
-            if (!selected.value) {
-                document.getElementById('mapSection').style.display = 'none';
-                return;
-            }
-
-            const lat = parseFloat(selected.getAttribute('data-lat'));
-            const lng = parseFloat(selected.getAttribute('data-lng'));
-
-            document.getElementById('mapSection').style.display = 'block';
-
-            if (!map) {
-                map = L.map('map').setView([lat, lng], 11);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                map.on('click', function(e) {
-                    selectedLat = e.latlng.lat;
-                    selectedLng = e.latlng.lng;
-                    document.getElementById('coords').innerText =
-                        `Lat: ${selectedLat.toFixed(4)}, Lng: ${selectedLng.toFixed(4)}`;
-                    if (marker) map.removeLayer(marker);
-                    marker = L.marker([selectedLat, selectedLng]).addTo(map);
-                });
-            } else {
-                map.setView([lat, lng], 11);
-                if (marker) { map.removeLayer(marker); marker = null; }
-                selectedLat = null;
-                selectedLng = null;
-                document.getElementById('coords').innerText = 'Click the map to select';
-            }
-
-            setTimeout(() => map.invalidateSize(), 100);
-        }
-
-        function submitReport() {
-            const description = document.getElementById('description').value;
-            const district = document.getElementById('district').value;
-            const imageFile = document.getElementById('image').files[0];
-
-            if (!description || !district) {
-                alert("Please fill in the description and select a district.");
-                return;
-            }
-            if (!selectedLat || !selectedLng) {
-                alert("Please pin the exact location on the map.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('description', description);
-            formData.append('district', district);
-            formData.append('lat', selectedLat);
-            formData.append('lng', selectedLng);
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
-            fetch('/submit-report', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => {
-                if (!res.ok) {
-                    return res.text().then(text => { throw new Error("Server error: " + text); });
-                }
-                return res.json();
-            })
-            .then(data => {
-                let msg = "Submitted! Category: " + data.category + " | Priority: " + data.priority +
-                    " | Routed to: " + data.university + " (ID: " + data.id + ")";
-                if (data.duplicate_warning) {
-                    msg += " ⚠️ " + data.duplicate_warning;
-                }
-                document.getElementById('result').innerText = msg;
-            })
-            .catch(err => {
-                document.getElementById('result').innerText = "Error: " + err.message;
-                console.error(err);
-            });
-        }
-    </script>
+  <script src="/static/store.js"></script>
+  <script src="/static/layout.js"></script>
+  <script>
+    Store.list().then((issues) => {
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><b>${Math.max(2480, issues.length).toLocaleString("en-IN")}</b><span>Challenges Submitted</span></div>
+        <div class="stat"><b>1,120</b><span>Universities Engaged</span></div>
+        <div class="stat"><b>310</b><span>Industry Partners</span></div>
+        <div class="stat"><b>185</b><span>Solutions in Implementation</span></div>`;
+    });
+  </script>
 </body>
 </html>

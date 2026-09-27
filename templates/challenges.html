@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Public Challenge Register · NexGenX | Government of India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2>Public Challenge Register</h2>
+          <p class="muted" style="margin-top:8px">Geo-tagged citizen reports received from across the country. Filter by domain or search by subject or ticket ID.</p>
+        </div>
+        <a class="btn btn-accent" href="report.html">Report an Issue</a>
+      </div>
+      <div class="filters">
+        <input id="q" placeholder="Search subject or ticket ID" style="max-width:280px" />
+        <select id="category">
+          <option value="">All Categories</option>
+          <option value="education">Education</option>
+          <option value="agriculture">Agriculture</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="water resources">Water Resources</option>
+          <option value="environment">Environment</option>
+          <option value="energy">Energy</option>
+          <option value="urban development">Urban Development</option>
+          <option value="accessibility">Accessibility</option>
+          <option value="public administration">Public Administration</option>
+          <option value="rural livelihoods">Rural Livelihoods</option>
+        </select>
+      </div>
+      <div id="map" class="map" style="margin-bottom:18px"></div>
+      <div class="issue-list" id="list"></div>
+    </div>
+  </section>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/store.js"></script>
+  <script src="/static/layout.js"></script>
+  <script>
+    const preset = new URLSearchParams(location.search).get("q");
+    if (preset) q.value = preset;
+
+    const map = L.map("map").setView([22.5, 79], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
+    const layer = L.layerGroup().addTo(map);
+
+    async function render() {
+      const issues = await Store.list({ q: q.value, category: category.value });
+      layer.clearLayers();
+      document.getElementById("list").innerHTML = issues.map((i) => `
+  <article class="card issue-item">
+    <div>
+      <div class="chips" style="margin-bottom:8px">
+        <span class="badge">${i.category}</span>
+        <span class="badge">${i.priority}</span>
+        <span class="badge">${i.status}</span>
+      </div>
+      <h3>${i.title}</h3>
+      <p class="muted">${i.location} · Ticket ID: ${i.id} · ${i.university || "University match awaited"}</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <a class="btn btn-ghost btn-sm" href="track.html?id=${i.id}">View Details</a>
+      <button class="btn btn-sm" style="background:#b12704;color:#fff" data-delete-id="${i.id}">Delete</button>
+    </div>
+  </article>`).join("") || "<p class='notice'>No challenges found for the selected criteria.</p>";
+
+document.querySelectorAll("button[data-delete-id]").forEach((btn) => {
+  btn.onclick = async () => {
+    if (!confirm("Delete this challenge permanently?")) return;
+    await Store.delete(btn.dataset.deleteId);
+    render();
+  };
+});
+      
+      issues.forEach((i) => {
+        if (!i.lat) return;
+        L.marker([i.lat, i.lng]).addTo(layer).bindPopup(`<b>${i.title}</b><br>${i.location}<br><a href="track.html?id=${i.id}">Track</a>`);
+      });
+    }
+    q.oninput = render;
+    category.onchange = render;
+    render();
+  </script>
+</body>
+</html>
